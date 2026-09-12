@@ -1,0 +1,20 @@
+# Python
+backend/.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Bí mật/API key
+backend/.env
+frontend/.env
+.env
+
+# IDE
+.vscode/
+
+# Logs
+*.log
