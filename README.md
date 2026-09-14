@@ -1,6 +1,6 @@
 # An Tâm — Hệ thống quản lý nhà thuốc có tích hợp AI
 
-Mã nguồn ứng dụng chạy trên máy của bạn: **FastAPI + React + PostgreSQL + OpenAI**.
+Mã nguồn ứng dụng chạy trên máy của bạn: **FastAPI + React + PostgreSQL + Gemini**.
 Giao diện tiếng Việt gồm 12 khu vực làm việc, có phân quyền ở cả giao diện và API.
 
 **Đọc hướng dẫn từng bước dành cho Windows/VS Code:** [HUONG_DAN_CHAY.md](HUONG_DAN_CHAY.md).
@@ -60,18 +60,18 @@ Nếu dùng PostgreSQL cài sẵn, có thể bỏ Docker; xem cách tạo databa
 
 Tồn và giá lưu theo **lô**, tiền dùng `Decimal`/`Numeric`. Thuốc kê đơn chỉ được quản lý/dược sĩ lập hóa đơn sau khi kiểm tra và nhập mã đơn; thu ngân bị chặn ở backend. Ứng dụng chỉ lưu mã tham chiếu, không xác thực tính hợp lệ của đơn thuốc ngoài đời.
 
-## OpenAI
+## Gemini
 
 Mở `backend/.env` (được tạo bằng `scripts/setup.py`):
 
 ```dotenv
-OPENAI_API_KEY=YOUR_OPENAI_API_KEY
-OPENAI_MODEL=gpt-4.1-mini
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+GEMINI_MODEL=gemini-3.8-flash
 ```
 
-Khởi động lại backend. Key chỉ nằm ở backend, không đưa vào React hoặc Git. Model cấu hình được và phải khả dụng trong tài khoản API của bạn. Khi thiếu key, hết hạn mức, lỗi mạng hay lỗi model, giao diện báo lỗi rõ ràng; các chức năng quản lý khác vẫn dùng được.
+Khởi động lại backend sau khi thay đổi cấu hình. API key chỉ được lưu ở backend, không đưa vào React hoặc GitHub. Model phải là model Gemini được tài khoản API của bạn hỗ trợ. Khi thiếu API key, hết hạn mức, lỗi mạng hoặc model không khả dụng, giao diện sẽ báo lỗi rõ ràng; các chức năng quản lý khác vẫn hoạt động bình thường.
 
-Tích hợp bằng OpenAI Python SDK, Responses API và Structured Outputs. Model chỉ chọn các ID nguồn; server kiểm tra ID và ghép nội dung nguyên văn. Đây là tóm tắt **trích chọn**, không sinh hướng dẫn dùng thuốc tự do. Đề xuất xử lý lô lấy từ quy tắc của phần mềm, AI chọn các lô đáng chú ý. Không có công cụ cho AI ghi hoặc sửa tồn kho. [Tài liệu Structured Outputs chính thức](https://developers.openai.com/api/docs/guides/structured-outputs).
+Hệ thống tích hợp Gemini API ở backend thông qua HTTP. Module `app/ai.py` gửi yêu cầu đến Gemini và yêu cầu phản hồi JSON có cấu trúc. AI chỉ chọn các nguồn đã được duyệt; backend kiểm tra ID nguồn và ghép nội dung để hiển thị cho người dùng. AI không tự ghi hoặc sửa tồn kho, không kê đơn, không chẩn đoán và không tự chỉ định liều dùng.
 
 ## Cấu trúc dự án
 
@@ -84,7 +84,7 @@ pharmacy-ai/
       schemas.py       Kiểm tra đầu vào
       services.py      Giao dịch bán hàng, hủy đơn, tồn kho
       auth.py          Hash mật khẩu, phiên đăng nhập
-      ai.py            Prompt, OpenAI, kiểm tra nguồn, log
+      ai.py            Prompt, Gemini, kiểm tra nguồn, log
       config.py        Biến môi trường, ngày nghiệp vụ
       db.py            Kết nối và phiên SQLAlchemy
       init_db.py       Khởi tạo schema và tài khoản quản lý

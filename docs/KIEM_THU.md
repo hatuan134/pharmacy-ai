@@ -9,8 +9,8 @@
 | Frontend: `npm run build` | **Thành công** |
 | Biên dịch DDL cho PostgreSQL | **11 bảng**, không lỗi biên dịch |
 | Khởi tạo CSDL và seed qua CLI | Đã chạy trên SQLite phục vụ kiểm thử cục bộ |
-| OpenAI SDK/Structured Outputs | Đã kiểm thử qua HTTP MockTransport với SDK thật |
-| Gọi OpenAI bằng API key thật | **Chưa thực hiện**, không có key người dùng |
+| Gemini Interactions API / structured JSON | Đã kiểm thử bằng mock HTTP, không gọi mạng thật |
+| Gọi Gemini bằng API key thật | **Chưa thực hiện**, không có key người dùng |
 | Chạy ứng dụng trên PostgreSQL thật | **Chưa thực hiện trong môi trường tạo dự án** |
 | Kiểm thử đồng thời PostgreSQL | Có sẵn test, **bỏ qua vì thiếu TEST_POSTGRES_URL** |
 | Kiểm tra giao diện qua trình duyệt | **Chưa hoàn tất**: trình duyệt chặn localhost (`ERR_BLOCKED_BY_CLIENT`) |
@@ -39,7 +39,7 @@ Có một cảnh báo deprecation từ Starlette/TestClient với AnyIO ở môi
 - AI chỉ đọc nguồn đã duyệt, ghép đúng đoạn nguồn và cảnh báo.
 - Thiếu key, không có dữ liệu, nguồn chưa duyệt, ID nguồn bịa.
 - Lỗi provider được đổi thành thông báo rõ ràng và lưu log, không lộ lỗi thô.
-- OpenAI SDK gửi đúng `/v1/responses`, schema JSON, `store=False`; parse phản hồi có cấu trúc.
+- Backend gửi đúng `POST /v1beta/interactions`, header `x-goog-api-key`, `store=False`, `response_format` JSON schema và parse bước `model_output` có cấu trúc.
 - Báo cáo khoảng ngày ngược và đổi đơn vị của thuốc đã có lô.
 - Giá đã thay đổi sau khi thêm giỏ cần xác nhận lại, không tự tính tiền theo giá mới.
 
@@ -100,7 +100,7 @@ export TEST_POSTGRES_URL='postgresql+psycopg://pharmacy:MAT_KHAU_DB@localhost:54
 | Hủy hóa đơn hai lần | Tồn chỉ hoàn một lần |
 | In hóa đơn | Không in sidebar/nút thao tác; tổng khớp chi tiết |
 | Thu ngân thử sửa lô/xem hóa đơn người khác | Backend từ chối 403 |
-| Duyệt quy trình và gọi OpenAI thật | Có kết quả, nguồn, cảnh báo và log; kiểm tra tính phù hợp |
+| Duyệt quy trình và gọi Gemini thật | Có kết quả, nguồn, cảnh báo và log; kiểm tra tính phù hợp |
 | API key sai hoặc mất mạng | Báo lỗi rõ, chức năng quản lý vẫn hoạt động |
 | Xem bằng cửa sổ hẹp/điện thoại | Menu mở được, bảng cuộn ngang, form không tràn |
 

@@ -163,11 +163,11 @@ Có ba sản phẩm thực hành và ba quy trình chưa duyệt. Đây là tên
 
 Nếu mạng mất sau khi bấm thanh toán, dùng **Thử lại thanh toán** để kiểm tra cùng mã giao dịch. Đừng mở giỏ mới trước khi kiểm tra hóa đơn vì giao dịch trước có thể đã thành công.
 
-## 8. Cấu hình và sử dụng OpenAI
+## 8. Cấu hình và sử dụng Gemini
 
-1. Chuẩn bị OpenAI API key cho tài khoản API của bạn. Không gửi key vào cuộc trò chuyện, ảnh chụp hoặc Git.
+1. Chuẩn bị Gemini API key cho tài khoản API của bạn. Không gửi key vào cuộc trò chuyện, ảnh chụp hoặc Git.
 2. Mở `backend/.env` trong VS Code.
-3. Sửa `OPENAI_API_KEY=` thành key của bạn. Giữ `OPENAI_MODEL=gpt-4.1-mini` hoặc đổi sang model hỗ trợ Responses/Structured Outputs mà tài khoản bạn được phép dùng.
+3. Sửa `GEMINI_API_KEY=` thành key của bạn. Giữ `GEMINI_MODEL=gemini-3.8-flash` hoặc đổi sang model Gemini tương thích với Interactions API và structured JSON mà tài khoản của bạn được phép dùng.
 4. Lưu file.
 5. Tại terminal backend, nhấn **Ctrl+C**, chạy lại lệnh uvicorn ở bước 4. Không chỉ tải lại trang web.
 6. Trong **Danh mục thuốc**, nhập thông tin tham khảo, nguồn chính xác; lưu rồi bấm dấu tích **Duyệt thông tin** sau khi kiểm tra chuyên môn.

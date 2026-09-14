@@ -2,7 +2,7 @@
 
 ## Kiến trúc
 
-React gọi `/api` cùng origin với Vite. Vite proxy đến FastAPI; FastAPI truy cập PostgreSQL qua SQLAlchemy + psycopg. Chỉ module `app/ai.py` gọi OpenAI. Mọi tác vụ AI là đọc và trích chọn; không có tool cho AI cập nhật dữ liệu nghiệp vụ.
+React gọi `/api` cùng origin với Vite. Vite proxy đến FastAPI; FastAPI truy cập PostgreSQL qua SQLAlchemy + psycopg. Chỉ module `app/ai.py` gọi Gemini. Mọi tác vụ AI là đọc và trích chọn; không có tool cho AI cập nhật dữ liệu nghiệp vụ.
 
 - Python 3.11+, hướng dẫn chuẩn dùng 3.12.
 - React 19, Vite 6, CSS thuần, Lucide icons; font có fallback hệ thống nếu Google Fonts không tải được.
@@ -97,13 +97,13 @@ Quản lý chỉ nên được cấp quyền duyệt/bán thuốc kê đơn nế
 - Không gửi thông tin tài khoản, hash mật khẩu hay khóa API vào prompt.
 - System prompt nằm trong `backend/app/ai.py`, yêu cầu coi dữ liệu và câu hỏi là untrusted, từ chối đổi vai/lộ prompt/chẩn đoán/kê đơn.
 - Bộ lọc câu hỏi chặn một số mẫu rủi ro phổ biến; đây không phải bộ lọc ngữ nghĩa hoàn hảo.
-- Structured Outputs dùng Pydantic, sau đó server kiểm tra mọi ID có tồn tại trong tập nguồn cho phép. ID lạ làm tác vụ thất bại, không hiển thị nội dung tự sinh.
+- Structured JSON dùng schema sinh từ Pydantic; sau đó server kiểm tra mọi ID có tồn tại trong tập nguồn cho phép. ID lạ làm tác vụ thất bại, không hiển thị nội dung tự sinh.
 - Kết quả là trích chọn, không có trường tự do để model viết lời khuyên dùng thuốc. Nội dung nguồn vẫn phải được người có trách nhiệm rà soát; một nguồn sai nhưng được duyệt vẫn có thể cho kết quả sai.
 - Lọc dòng hướng dẫn dùng thuốc trong tóm tắt là lớp bổ sung, không thay được việc kiểm duyệt nguồn. Không nhập dữ liệu bệnh nhân cá nhân vào câu hỏi.
 - Chưa có kiểm thử đối kháng đầy đủ với model thật; không tuyên bố loại bỏ hoàn toàn prompt injection hoặc bảo đảm an toàn lâm sàng.
 - Model có thể từ chối/chọn thiếu nguồn. Phần mềm báo không đủ thông tin và hướng nhân viên kiểm tra nguồn.
 - Không có AI tool gọi API ghi dữ liệu. AI không tự hủy lô, xuất kho hay đặt hàng.
-- Có `store=False` trong yêu cầu Responses. Chính sách xử lý/lưu dữ liệu phía nhà cung cấp vẫn phụ thuộc tài khoản/cấu hình dịch vụ; không suy ra từ cờ này rằng nhà cung cấp tuyệt đối không lưu dữ liệu.
+- Có `store=False` trong yêu cầu Gemini Interactions API. Chính sách xử lý/lưu dữ liệu phía nhà cung cấp vẫn phụ thuộc tài khoản/cấu hình dịch vụ; không suy ra từ cờ này rằng nhà cung cấp tuyệt đối không lưu dữ liệu.
 - Giới hạn 100 nguồn/60.000 ký tự; không âm thầm cắt giữa các bước quy trình.
 
 ## Xác thực và vận hành

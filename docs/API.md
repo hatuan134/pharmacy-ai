@@ -76,4 +76,4 @@ Ví dụ AI:
 {"mode":"expiry","question":"","days":60}
 ```
 
-Các mã phản hồi đáng chú ý: 401 cần đăng nhập; 403 sai quyền/origin/header; 409 xung đột tồn/giá/dữ liệu; 422 đầu vào hoặc nguồn không phù hợp; 429 giới hạn yêu cầu; 502 lỗi provider AI; 503 chưa cấu hình OpenAI.
+Các mã phản hồi đáng chú ý: 401 cần đăng nhập; 403 sai quyền/origin/header; 409 xung đột tồn/giá/dữ liệu; 422 đầu vào hoặc nguồn không phù hợp; 429 giới hạn yêu cầu; 502 lỗi provider AI; 503 chưa cấu hình Gemini.

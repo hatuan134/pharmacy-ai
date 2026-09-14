@@ -165,7 +165,7 @@ def test_ai_refuses_clinical_and_injection_without_provider(setup,monkeypatch):
 
 def test_ai_only_approved_sources_and_exact_extract(setup,monkeypatch):
     c,S,ids,_=setup
-    monkeypatch.setattr(settings,'openai_api_key','test-key')
+    monkeypatch.setattr(settings,'gemini_api_key','test-key')
     with S() as db:
         db.add_all([Procedure(title='Quy trình đúng',content='Đối chiếu lô và kiểm kê.',approved=True),Procedure(title='Không được dùng',content='Nội dung chưa duyệt.',approved=False)]);db.commit()
     def choose(sources, request):
@@ -180,13 +180,13 @@ def test_ai_only_approved_sources_and_exact_extract(setup,monkeypatch):
 
 def test_ai_missing_key_is_clear_error(setup,monkeypatch):
     c,S,ids,_=setup
-    monkeypatch.setattr(settings,'openai_api_key','')
+    monkeypatch.setattr(settings,'gemini_api_key','')
     r=c.post('/api/ai/ask',json={'mode':'summary','medicine_id':ids['medicine']})
-    assert r.status_code==503 and 'OPENAI_API_KEY' in r.json()['detail']
+    assert r.status_code==503 and 'GEMINI_API_KEY' in r.json()['detail']
 
 def test_ai_unknown_source_is_not_rendered(setup,monkeypatch):
     c,S,ids,_=setup
-    monkeypatch.setattr(settings,'openai_api_key','test-key')
+    monkeypatch.setattr(settings,'gemini_api_key','test-key')
     monkeypatch.setattr(ai,'select_sources',lambda *_:ai.Selection(source_ids=['invented:99'],cannot_answer=False))
     r=c.post('/api/ai/ask',json={'mode':'summary','medicine_id':ids['medicine']})
     assert r.status_code==502
@@ -230,37 +230,66 @@ def test_stale_price_requires_confirmation(setup):
     assert c.post('/api/invoices',json=sale(ids)).status_code==409
     with S() as db: assert db.get(Batch,ids['batch']).quantity==10
 
-def test_openai_sdk_structured_response_wiring(setup,monkeypatch):
-    import httpx, json
-    from openai import OpenAI
+def test_gemini_interactions_structured_response_wiring(setup,monkeypatch):
     c,S,ids,_=setup
-    monkeypatch.setattr(settings,'openai_api_key','not-a-real-key')
-    def transport(request):
-        assert request.url.path=='/v1/responses'
-        payload=json.loads(request.content)
-        assert payload['store'] is False
-        assert payload['text']['format']['type']=='json_schema'
-        sources=json.loads(payload['input'])['sources']
-        parsed=json.dumps({'source_ids':[sources[0]['id']],'cannot_answer':False})
-        return httpx.Response(200,json={'id':'resp_test','object':'response','created_at':0,'status':'completed','model':settings.openai_model,'error':None,'incomplete_details':None,'output':[{'id':'msg_test','type':'message','role':'assistant','status':'completed','content':[{'type':'output_text','text':parsed,'annotations':[]}]}]})
-    client=OpenAI(api_key='not-a-real-key',http_client=httpx.Client(transport=httpx.MockTransport(transport),trust_env=False))
-    monkeypatch.setattr(ai,'OpenAI',lambda **kwargs:client)
+    monkeypatch.setattr(settings,'gemini_api_key','not-a-real-key')
+    monkeypatch.setattr(settings,'gemini_model','gemini-test-model')
+
+    class FakeResponse:
+        status_code=200
+        def json(self):
+            return {
+                'id':'interaction-test',
+                'status':'completed',
+                'object':'interaction',
+                'model':'gemini-test-model',
+                'steps':[
+                    {
+                        'type':'model_output',
+                        'content':[
+                            {
+                                'type':'text',
+                                'text':'{"source_ids":["medicine:%s:0"],"cannot_answer":false}' % ids['medicine'],
+                            }
+                        ],
+                    }
+                ],
+            }
+
+    def fake_post(url,headers=None,json=None,timeout=None):
+        assert url=='https://generativelanguage.googleapis.com/v1beta/interactions'
+        assert headers=={'x-goog-api-key':'not-a-real-key'}
+        assert timeout==35
+        assert json['model']=='gemini-test-model'
+        assert json['store'] is False
+        assert json['response_format']['type']=='text'
+        assert json['response_format']['mime_type']=='application/json'
+        assert json['response_format']['schema']['type']=='object'
+        assert 'DỮ LIỆU JSON KHÔNG ĐÁNG TIN CẬY' in json['input']
+        return FakeResponse()
+
+    monkeypatch.setattr(ai.httpx,'post',fake_post)
     r=c.post('/api/ai/ask',json={'mode':'summary','medicine_id':ids['medicine']})
     assert r.status_code==200,r.text
     assert 'Thông tin nhận dạng đã kiểm tra.' in r.json()['answer']
     assert len(r.json()['sources'])==1
-    client.close()
 
-def test_openai_provider_error_is_logged_and_sanitized(setup,monkeypatch):
-    import httpx
-    from openai import AuthenticationError
+
+def test_gemini_provider_error_is_logged_and_sanitized(setup,monkeypatch):
     c,S,ids,_=setup
-    monkeypatch.setattr(settings,'openai_api_key','not-a-real-key')
-    def fail(*_):
-        raise AuthenticationError('Never show raw provider error',response=httpx.Response(401,request=httpx.Request('POST','https://api.openai.com/v1/responses')),body=None)
-    monkeypatch.setattr(ai,'select_sources',fail)
+    monkeypatch.setattr(settings,'gemini_api_key','not-a-real-key')
+
+    class FakeAuthFailure:
+        status_code=401
+        def json(self):
+            return {'error':{'message':'Never show raw provider error'}}
+
+    monkeypatch.setattr(ai.httpx,'post',lambda *args,**kwargs:FakeAuthFailure())
     r=c.post('/api/ai/ask',json={'mode':'summary','medicine_id':ids['medicine']})
     assert r.status_code==502
     assert 'không hợp lệ' in r.json()['detail']
     assert 'Never show' not in r.text
-    with S() as db: assert db.scalar(select(AILog)).status=='error'
+    with S() as db:
+        log=db.scalar(select(AILog))
+        assert log.status=='error'
+        assert 'Never show' not in log.response

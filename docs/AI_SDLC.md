@@ -2,7 +2,7 @@
 
 ## Bằng chứng đã có trong gói này
 
-Yêu cầu đầu vào thực tế của người dùng: xây dựng hệ thống nhà thuốc quản lý thuốc, nhóm, đơn vị, lô, HSD, giá, bán hàng/hóa đơn, cảnh báo, NCC, tìm kiếm, báo cáo; dùng FastAPI, React, PostgreSQL và OpenAI; có test cho lô, hạn, bán hàng và AI.
+Yêu cầu đầu vào thực tế của người dùng: xây dựng hệ thống nhà thuốc quản lý thuốc, nhóm, đơn vị, lô, HSD, giá, bán hàng/hóa đơn, cảnh báo, NCC, tìm kiếm, báo cáo; dùng FastAPI, React, PostgreSQL và Gemini; có test cho lô, hạn, bán hàng và AI.
 
 Trong phiên tạo dự án, trợ lý AI đã sinh mã nguồn, test và tài liệu. Các quyết định như khóa lô, chống thanh toán lặp, hoàn kho một lần, thu hồi trạng thái duyệt và chọn nguồn trích dẫn được hiện thực trực tiếp trong mã.
 
@@ -10,7 +10,7 @@ Trong phiên tạo dự án, trợ lý AI đã sinh mã nguồn, test và tài l
 |---|---|---|
 | Phân tích | Yêu cầu gốc của đề tài | README tính năng, bảng vai trò và quy tắc trong THIET_KE.md |
 | Thiết kế | Tồn kho theo lô, bảo toàn hóa đơn, giới hạn AI | models.py, schemas.py, ERD và mô tả transaction |
-| Lập trình | FastAPI + React + PostgreSQL + OpenAI | backend/app, frontend/src, compose.yaml |
+| Lập trình | FastAPI + React + PostgreSQL + Gemini | backend/app, frontend/src, compose.yaml |
 | Kiểm thử | Hết hạn, thiếu tồn, lặp giao dịch, phân quyền, AI không có nguồn | backend/tests, frontend/src/ui.test.jsx, KIEM_THU.md và log test |
 | Triển khai | Người dùng chạy VS Code trên Windows | scripts/setup.py, README.md, HUONG_DAN_CHAY.md |
 | Bảo trì | Tìm nguyên nhân lỗi màn hình / kho / AI | Bảng lỗi thường gặp, nhật ký biến động và nhật ký AI |
@@ -40,7 +40,7 @@ Trong phiên tạo dự án, trợ lý AI đã sinh mã nguồn, test và tài l
 - Role: Bạn là lập trình viên full-stack.
 - Context: API trong app/main.py, schema trong app/schemas.py, frontend dùng React qua /api.
 - Task: Tạo form thuốc/lô, POS, hóa đơn, cảnh báo và AI có trạng thái đang tải/lỗi/rỗng.
-- Constraints: Gọi API thật, xử lý HTTP 401/403/409/422; không đưa key vào frontend; không tự giả lập phản hồi OpenAI khi thiếu key.
+- Constraints: Gọi API thật, xử lý HTTP 401/403/409/422; không đưa key vào frontend; không tự giả lập phản hồi Gemini khi thiếu key.
 - Output: File thay đổi, cách chạy và bằng chứng kiểm thử.
 
 ### 4. Kiểm thử và debug tồn kho
