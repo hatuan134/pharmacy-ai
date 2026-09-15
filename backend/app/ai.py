@@ -31,6 +31,21 @@ def blocked(value):
     s = plain(value)
     return bool(re.search(r'ke don|chan doan|lieu dung|uong (may|bao nhieu)|dieu tri|chua benh|bo qua.*(lenh|chi dan)|ignore.*(instruction|previous)|system prompt|api.?key|mat khau|prescrib|dosage|diagnos|treat my|reveal.*prompt', s))
 
+def safe_summary_line(value):
+    """Keep approved reference text, but reject explicit dosing/administration instructions.
+
+    Word boundaries are important here: without them, Vietnamese words such as
+    "đường" -> "duong" and "thường" -> "thuong" accidentally match "uong".
+    """
+    if not value or not value.strip() or blocked(value):
+        return False
+    s = plain(value)
+    unsafe = re.search(
+        r'\b\d+\s*(vien|lan|ml|mg)\b.*\b(ngay|gio)\b|\bcach dung\b|\bcach su dung\b|\buong\b|\btiem\b',
+        s,
+    )
+    return not unsafe
+
 def source_data(db, request):
     sources = []
     if request.mode == 'summary':
@@ -38,7 +53,7 @@ def source_data(db, request):
         if not medicine.approved or not medicine.information or not medicine.source:
             raise HTTPException(422, 'Thông tin thuốc chưa được duyệt hoặc chưa có nguồn. Hãy nhờ dược sĩ kiểm tra.')
         for i, line in enumerate(medicine.information.splitlines()):
-            if line.strip() and not blocked(line) and not re.search(r'\b\d+\s*(vien|lan|ml|mg).*(ngay|gio)|cach dung|uong|tiem', plain(line)):
+            if safe_summary_line(line):
                 sources.append({'id': f'medicine:{medicine.id}:{i}', 'title': medicine.name, 'text': line.strip(), 'reference': medicine.source})
     elif request.mode == 'procedure':
         for proc in db.scalars(select(Procedure).where(Procedure.approved.is_(True)).order_by(Procedure.id)):
@@ -101,8 +116,17 @@ class GeminiAPIError(Exception):
     pass
 
 def answer(db, request, user):
-    def record(text, status, sources):
-        db.add(AILog(user_id=user.id, mode=request.mode, prompt=request.model_dump_json(), response=text, sources=json.dumps(sources, ensure_ascii=False), status=status, warning=WARNING, model=settings.gemini_model))
+    def record(text, status, sources, model=None):
+        db.add(AILog(
+            user_id=user.id,
+            mode=request.mode,
+            prompt=request.model_dump_json(),
+            response=text,
+            sources=json.dumps(sources, ensure_ascii=False),
+            status=status,
+            warning=WARNING,
+            model=model or settings.gemini_model,
+        ))
         db.commit()
     if blocked(request.question):
         message = 'Yêu cầu nằm ngoài phạm vi tra cứu nội bộ. Vui lòng trao đổi trực tiếp với dược sĩ/bác sĩ về việc sử dụng thuốc.'
@@ -113,6 +137,16 @@ def answer(db, request, user):
         message = 'Không có dữ liệu đã duyệt phù hợp.' if request.mode != 'expiry' else 'Không có lô còn tồn trong khoảng cảnh báo đã chọn.'
         record(message, 'no_data', [])
         return {'answer':message, 'sources':[], 'warning':WARNING}
+
+    # Tóm tắt thuốc là dữ liệu đã được dược sĩ/quản lý duyệt. Trả nguyên văn toàn bộ
+    # các đoạn an toàn thay vì để Gemini chọn ngẫu nhiên một vài dòng. Điều này vừa
+    # ổn định kết quả, vừa không tốn quota Gemini cho thao tác chỉ đọc dữ liệu.
+    if request.mode == 'summary':
+        picked = sources[:12]
+        message = '\n\n'.join(f'{i+1}. {s["title"]}\n{s["text"]}' for i, s in enumerate(picked))
+        record(message, 'ok', picked, model='database-direct')
+        return {'answer': message, 'sources': picked, 'warning': WARNING}
+
     if not settings.gemini_api_key:
         record('Chưa cấu hình Gemini API key.', 'not_configured', [])
         raise HTTPException(503, 'Chưa cấu hình GEMINI_API_KEY trong backend/.env. Nhập key rồi khởi động lại backend.')
