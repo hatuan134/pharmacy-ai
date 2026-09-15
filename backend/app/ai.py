@@ -52,9 +52,29 @@ def source_data(db, request):
         medicine = require(db, Medicine, request.medicine_id or 0)
         if not medicine.approved or not medicine.information or not medicine.source:
             raise HTTPException(422, 'Thông tin thuốc chưa được duyệt hoặc chưa có nguồn. Hãy nhờ dược sĩ kiểm tra.')
-        for i, line in enumerate(medicine.information.splitlines()):
-            if safe_summary_line(line):
-                sources.append({'id': f'medicine:{medicine.id}:{i}', 'title': medicine.name, 'text': line.strip(), 'reference': medicine.source})
+
+        # Tách nội dung theo câu/ý trước khi lọc. Nếu một câu có hướng dẫn uống/tiêm
+        # thì chỉ bỏ câu đó, không loại luôn toàn bộ phần thông tin tham khảo.
+        # Đồng thời gom các câu an toàn lại thành MỘT nguồn để giao diện không lặp
+        # cùng một thuốc nhiều lần ở phần "Nguồn đối chiếu".
+        fragments = []
+        for line in medicine.information.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = re.split(r'(?<=[.!?;])(?:\s+|(?=[A-ZÀ-ỸĐ]))', line)
+            for part in parts:
+                part = part.strip()
+                if safe_summary_line(part):
+                    fragments.append(part)
+
+        if fragments:
+            sources.append({
+                'id': f'medicine:{medicine.id}',
+                'title': medicine.name,
+                'text': '\n'.join(fragments),
+                'reference': medicine.source,
+            })
     elif request.mode == 'procedure':
         for proc in db.scalars(select(Procedure).where(Procedure.approved.is_(True)).order_by(Procedure.id)):
             # Keep complete procedures together; don't silently truncate a multi-step procedure.
