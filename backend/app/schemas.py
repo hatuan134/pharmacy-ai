@@ -83,7 +83,7 @@ class ProcedureIn(Input):
     content: str = Field(min_length=1, max_length=12000)
 
 class AIRequest(Input):
-    mode: Literal['summary', 'expiry', 'procedure']
+    mode: Literal['summary', 'expiry', 'procedure', 'web']
     medicine_id: int | None = None
     question: str = Field(default='', max_length=2000)
     days: int = Field(default=90, ge=1, le=365)
