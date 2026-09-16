@@ -13,7 +13,7 @@ from .config import settings, today
 from .db import get_db
 from .models import *
 from .schemas import *
-from .auth import current_user, staff, manager, verify_password, hash_password, token
+from .auth import current_user, staff, ai_user, manager, verify_password, hash_password, token
 from .services import require, row, movement, batch_rows, alerts, create_sale, cancel_sale, invoice_detail
 from . import ai
 
@@ -240,7 +240,7 @@ def reports(start: date | None=None, end: date | None=None, user=Depends(staff),
     return {'start': start, 'end': end, 'revenue':sum((i.total for i in rows), Decimal(0)), 'invoice_count':len(rows), 'stock_value':sum((b['quantity']*b['purchase_price'] for b in stock), Decimal(0)), 'total_units':sum(b['quantity'] for b in stock), 'medicine_count':len(list(db.scalars(select(Medicine).where(Medicine.active.is_(True))))), 'series':[{'date':k,'revenue':v} for k,v in sorted(series.items())], 'alerts':alerts(db)}
 
 @app.post('/api/ai/ask')
-def ask(data: AIRequest, user=Depends(staff), db=Depends(get_db)):
+def ask(data: AIRequest, user=Depends(ai_user), db=Depends(get_db)):
     rate_limit('ai:'+str(user.id), 10, 60)
     return ai.answer(db, data, user)
 

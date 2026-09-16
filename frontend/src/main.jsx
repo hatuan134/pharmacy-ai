@@ -6,7 +6,7 @@ import './style.css';
 
 const roles={manager:'Quản lý',pharmacist:'Dược sĩ',cashier:'Thu ngân'};
 const navigation=[['dashboard','Tổng quan',LayoutDashboard],['pos','Bán hàng tại quầy',ShoppingBag],['medicines','Danh mục thuốc',Pill],['batches','Lô nhập & tồn kho',Package],['invoices','Hóa đơn',BookOpen],['alerts','Cảnh báo',TriangleAlert],['suppliers','Nhà cung cấp',Truck],['reports','Báo cáo',ChartNoAxesCombined],['ai','Trợ lý AI',Sparkles],['procedures','Quy trình nội bộ',ShieldCheck],['users','Nhân viên',Users],['settings','Thiết lập',Settings]];
-const staffOnly=['reports','ai','procedures'];
+const staffOnly=['reports','procedures'];
 function ErrorBox({error}){return error ? <div className="error" role="alert">{error}</div>:null}
 function Empty({text='Chưa có dữ liệu. Hãy thêm bản ghi đầu tiên.'}){return <div className="empty"><Package size={32}/><b>Không có dữ liệu</b><span>{text}</span></div>}
 function Badge({children,tone='green'}){return <span className={'badge '+tone}>{children}</span>}

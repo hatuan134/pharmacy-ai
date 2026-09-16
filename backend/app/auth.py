@@ -41,4 +41,5 @@ def roles(*allowed):
     return check
 
 staff = roles('manager', 'pharmacist')
+ai_user = roles('manager', 'pharmacist', 'cashier')
 manager = roles('manager')
