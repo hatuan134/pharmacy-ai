@@ -209,15 +209,15 @@ def sale(data: Sale, user=Depends(current_user), db=Depends(get_db)):
 
 @app.get('/api/invoices')
 def invoices(user=Depends(current_user), db=Depends(get_db)):
+    # Mọi tài khoản đã đăng nhập đều được tra cứu danh sách hóa đơn.
+    # Quyền hủy hóa đơn vẫn được giới hạn cho quản lý/dược sĩ ở endpoint riêng.
     stmt = select(Invoice).order_by(Invoice.id.desc()).limit(1000)
-    if user.role == 'cashier': stmt = stmt.where(Invoice.user_id == user.id)
     return [row(i) for i in db.scalars(stmt)]
 
 @app.get('/api/invoices/{ident}')
 def invoice(ident: int, user=Depends(current_user), db=Depends(get_db)):
+    # Thu ngân cần xem/in được cả hóa đơn do nhân viên khác lập để tra cứu tại quầy.
     item = require(db, Invoice, ident)
-    if user.role == 'cashier' and item.user_id != user.id:
-        raise HTTPException(403, 'Bạn chỉ được xem hóa đơn do mình lập.')
     return invoice_detail(db, item)
 
 @app.post('/api/invoices/{ident}/cancel')

@@ -137,12 +137,14 @@ def test_prescription_requires_staff_and_reference(setup):
     c.cookies.set('session',tokens['pharmacist'])
     assert c.post('/api/invoices',json=payload).status_code==200
 
-def test_cashier_cannot_see_others_or_cancel(setup):
+def test_cashier_can_view_all_invoices_but_cannot_cancel(setup):
     c,S,ids,tokens=setup
     inv=c.post('/api/invoices',json=sale(ids)).json()
     c.cookies.set('session',tokens['cashier'])
-    assert c.get('/api/invoices').json()==[]
-    assert c.get('/api/invoices/'+str(inv['id'])).status_code==403
+    invoices=c.get('/api/invoices')
+    assert invoices.status_code==200
+    assert any(item['id']==inv['id'] for item in invoices.json())
+    assert c.get('/api/invoices/'+str(inv['id'])).status_code==200
     assert c.post('/api/invoices/'+str(inv['id'])+'/cancel',json={'reason':'Không được phép'}).status_code==403
 
 def test_update_revokes_approval_and_fk_delete_protected(setup):

@@ -183,7 +183,7 @@ Quản lý → **Nhân viên → Thêm nhân viên** → nhập tên đăng nh�
 
 - Quản lý: quản trị tất cả chức năng và nhân viên.
 - Dược sĩ: thuốc, lô, kiểm kê, bán hàng, hủy đơn, báo cáo, quy trình, AI; không quản trị nhân viên.
-- Thu ngân: xem thuốc/lô/cảnh báo, bán thuốc không kê đơn, xem/in hóa đơn do mình lập, đổi mật khẩu; không sửa danh mục hoặc tồn kho.
+- Thu ngân: xem thuốc/lô/cảnh báo, bán thuốc không kê đơn, xem/in toàn bộ hóa đơn để tra cứu tại quầy, đổi mật khẩu; không được hủy hóa đơn, sửa danh mục hoặc tồn kho.
 
 Đăng xuất rồi đăng nhập bằng từng vai trò để kiểm tra. Các API cũng kiểm tra quyền, không chỉ ẩn nút trên web.
 
