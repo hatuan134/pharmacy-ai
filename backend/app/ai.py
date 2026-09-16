@@ -153,15 +153,23 @@ def _safe_web_url(value):
 
 
 def search_web(question):
-    """Use Gemini Google Search grounding and return answer + verifiable citations."""
+    """Use Gemini 2.5 Flash-Lite + Google Search via generateContent.
+
+    Gemini 2.5 responses expose web sources in candidates[0].groundingMetadata
+    (groundingChunks), so parse that structure directly instead of depending on
+    Interactions inline annotations.
+    """
     payload = {
-        'model': WEB_SEARCH_MODEL,
-        'store': False,
-        'input': WEB_SYSTEM + '\n\nCÂU HỎI CẦN TRA CỨU:\n' + question,
-        'tools': [{'type': 'google_search'}],
+        'contents': [{
+            'role': 'user',
+            'parts': [{
+                'text': WEB_SYSTEM + '\n\nCÂU HỎI CẦN TRA CỨU:\n' + question
+            }],
+        }],
+        'tools': [{'google_search': {}}],
     }
     response = httpx.post(
-        'https://generativelanguage.googleapis.com/v1beta/interactions',
+        f'https://generativelanguage.googleapis.com/v1beta/models/{WEB_SEARCH_MODEL}:generateContent',
         headers={'x-goog-api-key': settings.gemini_api_key},
         json=payload,
         timeout=45,
@@ -171,48 +179,52 @@ def search_web(question):
     if response.status_code == 429:
         raise GeminiRateLimitError()
     if response.status_code >= 400:
+        # Keep the real API detail in Render logs without exposing the API key.
+        print(f'[AI WEB] Gemini HTTP {response.status_code}: {response.text[:1200]}')
         raise GeminiAPIError()
 
     data = response.json()
+    candidates = data.get('candidates') or []
+    if not candidates:
+        print(f'[AI WEB] No candidates: {json.dumps(data, ensure_ascii=False)[:1200]}')
+        raise GeminiAPIError()
+
+    candidate = candidates[0]
     text_parts = []
+    for part in ((candidate.get('content') or {}).get('parts') or []):
+        text = part.get('text')
+        if isinstance(text, str) and text.strip():
+            text_parts.append(text.strip())
+    answer_text = '\n'.join(text_parts).strip()
+    if not answer_text:
+        print(f'[AI WEB] Empty answer: {json.dumps(data, ensure_ascii=False)[:1200]}')
+        raise GeminiAPIError()
+
+    metadata = candidate.get('groundingMetadata') or candidate.get('grounding_metadata') or {}
+    chunks = metadata.get('groundingChunks') or metadata.get('grounding_chunks') or []
     citations = []
     seen = set()
-    for step in data.get('steps', []):
-        if step.get('type') != 'model_output':
+    for chunk in chunks:
+        web = chunk.get('web') or {}
+        url = _safe_web_url(web.get('uri') or web.get('url'))
+        if not url or url in seen:
             continue
-        for part in step.get('content', []):
-            if part.get('type') != 'text':
-                continue
-            text = part.get('text', '')
-            if text:
-                text_parts.append(text)
-            for annotation in part.get('annotations') or []:
-                if annotation.get('type') != 'url_citation':
-                    continue
-                url = _safe_web_url(annotation.get('url'))
-                if not url or url in seen:
-                    continue
-                seen.add(url)
-                title = (annotation.get('title') or urlparse(url).netloc or 'Nguồn Internet').strip()
-                citations.append({
-                    'id': f'web:{len(citations)+1}',
-                    'title': title,
-                    'text': '',
-                    'reference': url,
-                    'url': url,
-                    'kind': 'web',
-                })
+        seen.add(url)
+        title = (web.get('title') or urlparse(url).netloc or 'Nguồn Internet').strip()
+        citations.append({
+            'id': f'web:{len(citations)+1}',
+            'title': title,
+            'text': '',
+            'reference': url,
+            'url': url,
+            'kind': 'web',
+        })
 
-    # Some API versions expose the final text directly as output_text.
-    if not text_parts and data.get('output_text'):
-        text_parts.append(data['output_text'])
-
-    answer_text = '\n'.join(part.strip() for part in text_parts if part.strip()).strip()
-    if not answer_text:
-        raise GeminiAPIError()
     if not citations:
-        # External-search mode must remain inspectable; don't present an uncited web answer.
+        queries = metadata.get('webSearchQueries') or metadata.get('web_search_queries') or []
+        print(f'[AI WEB] Grounded answer without chunks. queries={queries!r}; metadata={json.dumps(metadata, ensure_ascii=False)[:1200]}')
         raise GeminiAPIError()
+
     return answer_text, citations[:12]
 
 
